@@ -133,8 +133,6 @@
             border-color: #764ba2;
             box-shadow: 0 0 15px rgba(118, 75, 162, 0.5);
         }
-        
-
     </style>
 </head>
 
@@ -144,7 +142,6 @@
         <div>VRMキャラクターを読み込んでいます...</div>
     </div>
     
-
     <div id="character-selector">
         <div class="character-option active" data-vrm="default" style="background-image: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23667eea%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2220%22>👤</text></svg>')"></div>
         <div class="character-option" data-vrm="character2" style="background-image: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23764ba2%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2220%22>👩</text></svg>')"></div>
@@ -179,8 +176,8 @@
         let currentAnimation = null;
         let animationMixer = null;
         let idleTimer = 0;
-        let nextIdleTime = 5; // 5秒後に次のアニメーション
-        let conversationHistory = []; // 会話履歴
+        let nextIdleTime = 5;
+        let conversationHistory = [];
 
         // VRMファイルの設定
         const VRM_CONFIGS = {
@@ -220,7 +217,7 @@
                                 if (track.name.includes('.position') && track.name.includes('X')) {
                                     console.log('Correcting X-axis position for track:', track.name);
                                     for (let i = 0; i < track.values.length; i++) {
-                                        track.values[i] *= -1; // X軸を反転
+                                        track.values[i] *= -1;
                                     }
                                 }
                                 
@@ -228,23 +225,23 @@
                                 if (track.name.includes('.position') && track.name.includes('Y')) {
                                     console.log('Correcting Y-axis position for track:', track.name);
                                     for (let i = 0; i < track.values.length; i++) {
-                                        track.values[i] *= -1; // Y軸を反転
+                                        track.values[i] *= -1;
                                     }
                                 }
                                 
                                 // X軸の回転データを反転修正（左右回転反転）
                                 if (track.name.includes('.quaternion') && track.name.includes('X')) {
                                     console.log('Correcting X-axis rotation for track:', track.name);
-                                    for (let i = 0; i < track.values.length; i += 4) { // quaternionのx成分
-                                        track.values[i] *= -1; // X軸回転を反転
+                                    for (let i = 0; i < track.values.length; i += 4) {
+                                        track.values[i] *= -1;
                                     }
                                 }
                                 
                                 // Y軸の回転データを反転修正（上下回転反転）
                                 if (track.name.includes('.quaternion') && track.name.includes('Y')) {
                                     console.log('Correcting Y-axis rotation for track:', track.name);
-                                    for (let i = 1; i < track.values.length; i += 4) { // quaternionのy成分
-                                        track.values[i] *= -1; // Y軸回転を反転
+                                    for (let i = 1; i < track.values.length; i += 4) {
+                                        track.values[i] *= -1;
                                     }
                                 }
                             });
@@ -268,9 +265,8 @@
                         // アニメーション終了時のイベント
                         animationMixer.addEventListener('finished', () => {
                             currentAnimation = null;
-                            // 次のアイドルアニメーションまでの時間をリセット
                             idleTimer = 0;
-                            nextIdleTime = Math.random() * 5 + 3; // 3-8秒後
+                            nextIdleTime = Math.random() * 5 + 3;
                         });
                         
                         console.log(`Playing animation with axis corrections: ${animationKey}`);
@@ -288,6 +284,82 @@
             const animationKeys = Object.keys(VRMA_ANIMATIONS);
             const randomKey = animationKeys[Math.floor(Math.random() * animationKeys.length)];
             loadVRMAAnimation(randomKey);
+        }
+
+        // キャラクターポーズを自然に調整
+        function adjustCharacterPose(vrm) {
+            try {
+                console.log('キャラクターポーズを自然に調整中...');
+                
+                const humanoid = vrm.humanoid;
+                if (!humanoid) {
+                    console.log('Humanoidが見つかりません');
+                    return;
+                }
+
+                // 両腕を自然に下げる（T字ポーズを修正）
+                const leftUpperArm = humanoid.getNormalizedBoneNode('leftUpperArm');
+                const rightUpperArm = humanoid.getNormalizedBoneNode('rightUpperArm');
+                
+                if (leftUpperArm) {
+                    leftUpperArm.rotation.z = 0.3;
+                    leftUpperArm.rotation.x = 0.1;
+                }
+                
+                if (rightUpperArm) {
+                    rightUpperArm.rotation.z = -0.3;
+                    rightUpperArm.rotation.x = 0.1;
+                }
+
+                // 肘を少し曲げる
+                const leftLowerArm = humanoid.getNormalizedBoneNode('leftLowerArm');
+                const rightLowerArm = humanoid.getNormalizedBoneNode('rightLowerArm');
+                
+                if (leftLowerArm) {
+                    leftLowerArm.rotation.y = -0.2;
+                }
+                
+                if (rightLowerArm) {
+                    rightLowerArm.rotation.y = 0.2;
+                }
+
+                // 手首を自然な角度に
+                const leftHand = humanoid.getNormalizedBoneNode('leftHand');
+                const rightHand = humanoid.getNormalizedBoneNode('rightHand');
+                
+                if (leftHand) {
+                    leftHand.rotation.x = -0.1;
+                    leftHand.rotation.z = 0.1;
+                }
+                
+                if (rightHand) {
+                    rightHand.rotation.x = -0.1;
+                    rightHand.rotation.z = -0.1;
+                }
+
+                // 肩を少しリラックスさせる
+                const leftShoulder = humanoid.getNormalizedBoneNode('leftShoulder');
+                const rightShoulder = humanoid.getNormalizedBoneNode('rightShoulder');
+                
+                if (leftShoulder) {
+                    leftShoulder.rotation.z = 0.1;
+                }
+                
+                if (rightShoulder) {
+                    rightShoulder.rotation.z = -0.1;
+                }
+
+                // 首を少し前に傾ける
+                const neck = humanoid.getNormalizedBoneNode('neck');
+                if (neck) {
+                    neck.rotation.x = 0.05;
+                }
+
+                console.log('キャラクターポーズ調整完了');
+                
+            } catch (error) {
+                console.error('ポーズ調整エラー:', error);
+            }
         }
 
         // 初期化
@@ -360,7 +432,7 @@
                         obj.frustumCulled = false;
                     });
 
-                    // キャラクターを正面向きに調整（180度回転）
+                    // キャラクターを正面向きに調整
                     vrm.scene.rotation.y = Math.PI;
                     
                     // 自然なポーズに調整
@@ -374,13 +446,12 @@
 
                     // アイドルアニメーションタイマーを開始
                     idleTimer = 0;
-                    nextIdleTime = Math.random() * 3 + 2; // 2-5秒後に最初のアニメーション
+                    nextIdleTime = Math.random() * 3 + 2;
 
                     // キャラクター選択UIを更新
                     updateCharacterSelector(characterKey);
                 },
                 (progress) => {
-                    // プログレス表示（コンソールのみ）
                     const percentage = (progress.loaded / progress.total) * 100;
                     console.log(`Loading... ${percentage.toFixed(1)}%`);
                 },
@@ -393,10 +464,8 @@
 
         // イベントリスナー設定
         function setupEventListeners() {
-            // ウィンドウリサイズ
             window.addEventListener('resize', onWindowResize);
 
-            // チャット送信
             document.getElementById('send-button').addEventListener('click', sendMessage);
             document.getElementById('chat-input').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
@@ -404,7 +473,6 @@
                 }
             });
 
-            // キャラクター選択
             document.querySelectorAll('.character-option').forEach(option => {
                 option.addEventListener('click', () => {
                     const characterKey = option.dataset.vrm;
@@ -420,15 +488,12 @@
             
             if (!message) return;
             
-            // 入力欄をクリア
             input.value = '';
             input.disabled = true;
             
-            // ユーザーメッセージを表示
             displayChatMessage('user', message);
             
             try {
-                // ChatGPT APIに送信
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: {
@@ -443,47 +508,38 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    // 会話履歴に追加
                     conversationHistory.push(
                         { role: 'user', content: message },
                         { role: 'assistant', content: data.response }
                     );
                     
-                    // 会話履歴を最新10件に制限
                     if (conversationHistory.length > 20) {
                         conversationHistory = conversationHistory.slice(-20);
                     }
                     
-                    // AIの応答を表示
                     displayChatMessage('assistant', data.response);
-                    
-                    // キャラクターの反応
                     triggerCharacterResponse(data.emotion || 'greeting');
                     
-                    // 音声再生
                     if (data.response) {
                         await playCharacterVoice(data.response, data.emotion);
                     }
-                    
                 } else {
                     console.error('API Error:', data.error);
                     if (data.error) {
                         alert('エラーが発生しました: ' + data.error);
                     }
-                    
-                } catch (error) {
-                    console.error('Network Error:', error);
-                    alert('ネットワークエラーが発生しました');
-                } finally {
-                    input.disabled = false;
-                    input.focus();
                 }
+            } catch (error) {
+                console.error('Network Error:', error);
+                alert('ネットワークエラーが発生しました');
+            } finally {
+                input.disabled = false;
+                input.focus();
             }
         }
 
         // チャットメッセージ表示
         function displayChatMessage(role, message) {
-            // 簡単なコンソール表示（後でUI拡張可能）
             const prefix = role === 'user' ? 'あなた' : 'VRMちゃん';
             console.log(`${prefix}: ${message}`);
         }
@@ -496,7 +552,6 @@
             try {
                 console.log('音声合成を開始:', text);
                 
-                // にじボイスAPIに音声合成をリクエスト
                 const response = await fetch('/api/speak', {
                     method: 'POST',
                     headers: {
@@ -513,34 +568,27 @@
                 if (data.success && data.audio_url) {
                     console.log('音声URL取得成功:', data.audio_url);
                     
-                    // 音声を再生
                     const audio = new Audio(data.audio_url);
                     
-                    // 音声再生開始時に口パク開始
                     audio.addEventListener('play', () => {
                         console.log('音声再生開始 - 口パク開始');
                         startLipSync();
                     });
                     
-                    // 音声再生終了時に口パク停止
                     audio.addEventListener('ended', () => {
                         console.log('音声再生終了 - 口パク停止');
                         stopLipSync();
                     });
                     
-                    // 音声再生エラー時に口パク停止
                     audio.addEventListener('error', (e) => {
                         console.error('音声再生エラー:', e);
                         stopLipSync();
                     });
                     
-                    // 音声再生
                     await audio.play();
-                    
                 } else {
                     console.error('音声合成エラー:', data.error);
                 }
-                
             } catch (error) {
                 console.error('音声再生エラー:', error);
                 stopLipSync();
@@ -554,22 +602,18 @@
             isPlaying = true;
             console.log('口パクアニメーション開始');
             
-            // シンプルな口パク（口の開閉を繰り返す）
             lipSyncInterval = setInterval(() => {
                 if (currentVrm && currentVrm.expressionManager) {
-                    // 口の開閉をランダムに制御
-                    const openAmount = Math.random() * 0.8 + 0.2; // 0.2-1.0の範囲
+                    const openAmount = Math.random() * 0.8 + 0.2;
                     
-                    // VRMの口の形状キーを制御
                     try {
                         currentVrm.expressionManager.setValue('aa', openAmount);
                         currentVrm.expressionManager.update();
                     } catch (e) {
-                        // 形状キーが存在しない場合は無視
                         console.log('口の形状キーが見つかりません');
                     }
                 }
-            }, 150); // 150msごとに口の形を変更
+            }, 150);
         }
 
         // 口パク停止
@@ -579,31 +623,27 @@
             isPlaying = false;
             console.log('口パクアニメーション停止');
             
-            // インターバルをクリア
             if (lipSyncInterval) {
                 clearInterval(lipSyncInterval);
                 lipSyncInterval = null;
             }
             
-            // 口を閉じる
             if (currentVrm && currentVrm.expressionManager) {
                 try {
                     currentVrm.expressionManager.setValue('aa', 0);
                     currentVrm.expressionManager.update();
                 } catch (e) {
-                    // 形状キーが存在しない場合は無視
+                    // 無視
                 }
             }
         }
 
         // キャラクター反応
         function triggerCharacterResponse(emotion) {
-            // 指定された感情に基づいてアニメーションを再生
             if (VRMA_ANIMATIONS[emotion]) {
                 loadVRMAAnimation(emotion);
                 console.log(`Character responding with emotion: ${emotion}`);
             } else {
-                // デフォルトアニメーション
                 playRandomIdleAnimation();
                 console.log(`Character responding with default animation`);
             }
@@ -635,12 +675,10 @@
             if (currentVrm) {
                 currentVrm.update(deltaTime);
                 
-                // アニメーションミキサーの更新
                 if (animationMixer) {
                     animationMixer.update(deltaTime);
                 }
                 
-                // アイドルアニメーションのタイマー管理
                 if (!currentAnimation) {
                     idleTimer += deltaTime;
                     if (idleTimer >= nextIdleTime) {
@@ -656,82 +694,6 @@
         // ローディング非表示
         function hideLoading() {
             document.getElementById('loading').style.display = 'none';
-        }
-
-        // キャラクターポーズを自然に調整
-        function adjustCharacterPose(vrm) {
-            try {
-                console.log('キャラクターポーズを自然に調整中...');
-                
-                const humanoid = vrm.humanoid;
-                if (!humanoid) {
-                    console.log('Humanoidが見つかりません');
-                    return;
-                }
-
-                // 両腕を自然に下げる（T字ポーズを修正）
-                const leftUpperArm = humanoid.getNormalizedBoneNode('leftUpperArm');
-                const rightUpperArm = humanoid.getNormalizedBoneNode('rightUpperArm');
-                
-                if (leftUpperArm) {
-                    leftUpperArm.rotation.z = 0.3; // 左腕を下げる
-                    leftUpperArm.rotation.x = 0.1; // 少し前に
-                }
-                
-                if (rightUpperArm) {
-                    rightUpperArm.rotation.z = -0.3; // 右腕を下げる
-                    rightUpperArm.rotation.x = 0.1; // 少し前に
-                }
-
-                // 肘を少し曲げる
-                const leftLowerArm = humanoid.getNormalizedBoneNode('leftLowerArm');
-                const rightLowerArm = humanoid.getNormalizedBoneNode('rightLowerArm');
-                
-                if (leftLowerArm) {
-                    leftLowerArm.rotation.y = -0.2; // 肘を曲げる
-                }
-                
-                if (rightLowerArm) {
-                    rightLowerArm.rotation.y = 0.2; // 肘を曲げる
-                }
-
-                // 手首を自然な角度に
-                const leftHand = humanoid.getNormalizedBoneNode('leftHand');
-                const rightHand = humanoid.getNormalizedBoneNode('rightHand');
-                
-                if (leftHand) {
-                    leftHand.rotation.x = -0.1; // 手首を少し下げる
-                    leftHand.rotation.z = 0.1; // 自然な角度
-                }
-                
-                if (rightHand) {
-                    rightHand.rotation.x = -0.1; // 手首を少し下げる
-                    rightHand.rotation.z = -0.1; // 自然な角度
-                }
-
-                // 肩を少しリラックスさせる
-                const leftShoulder = humanoid.getNormalizedBoneNode('leftShoulder');
-                const rightShoulder = humanoid.getNormalizedBoneNode('rightShoulder');
-                
-                if (leftShoulder) {
-                    leftShoulder.rotation.z = 0.1; // 肩を少し下げる
-                }
-                
-                if (rightShoulder) {
-                    rightShoulder.rotation.z = -0.1; // 肩を少し下げる
-                }
-
-                // 首を少し前に傾ける（より自然に）
-                const neck = humanoid.getNormalizedBoneNode('neck');
-                if (neck) {
-                    neck.rotation.x = 0.05; // 首を少し前に
-                }
-
-                console.log('キャラクターポーズ調整完了');
-                
-            } catch (error) {
-                console.error('ポーズ調整エラー:', error);
-            }
         }
 
         // 初期化実行
