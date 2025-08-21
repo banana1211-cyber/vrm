@@ -1,6 +1,8 @@
 {
   "version": 2,
   "name": "vrm-chat-app",
+  "buildCommand": "",
+  "outputDirectory": ".",
   "functions": {
     "api/**/*.js": {
       "maxDuration": 30
