@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>VRMキャラクターチャットアプリ</title>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <style>
+        body {
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            font-size: 18px;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin-right: 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        #chat-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 600px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 25px;
+            padding: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+        
+        #chat-input {
+            width: calc(100% - 80px);
+            padding: 12px 20px;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+            outline: none;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        #send-button {
+            width: 60px;
+            height: 44px;
+            border: none;
+            border-radius: 20px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        #send-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        #character-selector {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+        
+        .character-option {
+            display: block;
+            width: 60px;
+            height: 60px;
+            margin: 10px 0;
+            border: 3px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .character-option:hover {
+            border-color: #667eea;
+            transform: scale(1.1);
+        }
+        
+        .character-option.active {
+            border-color: #764ba2;
+            box-shadow: 0 0 15px rgba(118, 75, 162, 0.5);
+        }
+        
+
+    </style>
+</head>
+
+<body>
+    <div id="loading">
+        <div class="loading-spinner"></div>
+        <div>VRMキャラクターを読み込んでいます...</div>
+    </div>
+    
+
+    <div id="character-selector">
+        <div class="character-option active" data-vrm="default" style="background-image: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23667eea%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2220%22>👤</text></svg>')"></div>
+        <div class="character-option" data-vrm="character2" style="background-image: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23764ba2%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2220%22>👩</text></svg>')"></div>
+        <div class="character-option" data-vrm="character3" style="background-image: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23f093fb%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2220%22>🧑</text></svg>')"></div>
+    </div>
+    
+    <div id="chat-container">
+        <input type="text" id="chat-input" placeholder="メッセージを入力..." />
+        <button id="send-button">送信</button>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.177.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.177.0/examples/jsm/",
+                "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3/lib/three-vrm.module.min.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+
+        // グローバル変数
+        let currentVrm = undefined;
+        let scene, camera, renderer, controls;
+        let clock = new THREE.Clock();
+        let currentAnimation = null;
+        let animationMixer = null;
+        let idleTimer = 0;
+        let nextIdleTime = 5; // 5秒後に次のアニメーション
+        let conversationHistory = []; // 会話履歴
+
+        // VRMファイルの設定
+        const VRM_CONFIGS = {
+            'default': '/assets/vrm/6156990452426395380.vrm',
+            'character2': '/assets/vrm/6156990452426395380.vrm',
+            'character3': '/assets/vrm/6156990452426395380.vrm'
+        };
+
+        // VRMAアニメーションファイルの設定
+        const VRMA_ANIMATIONS = {
+            'show_body': '/assets/vrma/VRMA_01.vrma',
+            'greeting': '/assets/vrma/VRMA_02.vrma',
+            'v_sign': '/assets/vrma/VRMA_03.vrma'
+        };
+
+        // キャラクターのポーズを自然な立ちポーズに調整
+        function adjustCharacterPose(vrm) {
+            if (!vrm.humanoid) return;
+            
+            // 両腕を自然に下げる
+            const leftShoulder = vrm.humanoid.getNormalizedBoneNode('leftShoulder');
+            const rightShoulder = vrm.humanoid.getNormalizedBoneNode('rightShoulder');
+            const leftUpperArm = vrm.humanoid.getNormalizedBoneNode('leftUpperArm');
+            const rightUpperArm = vrm.humanoid.getNormalizedBoneNode('rightUpperArm');
+            const leftLowerArm = vrm.humanoid.getNormalizedBoneNode('leftLowerArm');
+            const rightLowerArm = vrm.humanoid.getNormalizedBoneNode('rightLowerArm');
+            
+            if (leftShoulder) {
+                leftShoulder.rotation.set(0, 0, 0);
+            }
+            if (rightShoulder) {
+                rightShoulder.rotation.set(0, 0, 0);
+            }
+            if (leftUpperArm) {
+                leftUpperArm.rotation.set(0, 0, 0.2); // 少し内側に
+            }
+            if (rightUpperArm) {
+                rightUpperArm.rotation.set(0, 0, -0.2); // 少し内側に
+            }
+            if (leftLowerArm) {
+                leftLowerArm.rotation.set(0, 0, 0.1); // 軽く曲げる
+            }
+            if (rightLowerArm) {
+                rightLowerArm.rotation.set(0, 0, -0.1); // 軽く曲げる
+            }
+        }
+
+        // VRMAアニメーション読み込み
+        function loadVRMAAnimation(animationKey) {
+            if (!currentVrm) return;
+            
+            const vrmaUrl = VRMA_ANIMATIONS[animationKey];
+            if (!vrmaUrl) return;
+            
+            const loader = new GLTFLoader();
+            loader.crossOrigin = 'anonymous';
+            
+            loader.load(
+                vrmaUrl,
+                (gltf) => {
+                    const animations = gltf.animations;
+                    if (animations && animations.length > 0) {
+                        console.log('VRMA animation loaded, applying axis corrections...');
+                        
+                        // アニメーションの各トラックを修正（左右・上下反転修正）
+                        animations.forEach(animation => {
+                            animation.tracks.forEach(track => {
+                                // X軸の位置データを反転修正（左右反転）
+                                if (track.name.includes('.position') && track.name.includes('X')) {
+                                    console.log('Correcting X-axis position for track:', track.name);
+                                    for (let i = 0; i < track.values.length; i++) {
+                                        track.values[i] *= -1; // X軸を反転
+                                    }
+                                }
+                                
+                                // Y軸の位置データを反転修正（上下反転）
+                                if (track.name.includes('.position') && track.name.includes('Y')) {
+                                    console.log('Correcting Y-axis position for track:', track.name);
+                                    for (let i = 0; i < track.values.length; i++) {
+                                        track.values[i] *= -1; // Y軸を反転
+                                    }
+                                }
+                                
+                                // X軸の回転データを反転修正（左右回転反転）
+                                if (track.name.includes('.quaternion') && track.name.includes('X')) {
+                                    console.log('Correcting X-axis rotation for track:', track.name);
+                                    for (let i = 0; i < track.values.length; i += 4) { // quaternionのx成分
+                                        track.values[i] *= -1; // X軸回転を反転
+                                    }
+                                }
+                                
+                                // Y軸の回転データを反転修正（上下回転反転）
+                                if (track.name.includes('.quaternion') && track.name.includes('Y')) {
+                                    console.log('Correcting Y-axis rotation for track:', track.name);
+                                    for (let i = 1; i < track.values.length; i += 4) { // quaternionのy成分
+                                        track.values[i] *= -1; // Y軸回転を反転
+                                    }
+                                }
+                            });
+                        });
+                        
+                        // アニメーションミキサーを作成
+                        if (animationMixer) {
+                            animationMixer.stopAllAction();
+                        }
+                        animationMixer = new THREE.AnimationMixer(currentVrm.scene);
+                        
+                        // アニメーションクリップを再生
+                        const action = animationMixer.clipAction(animations[0]);
+                        action.reset();
+                        action.setLoop(THREE.LoopOnce);
+                        action.clampWhenFinished = true;
+                        action.play();
+                        
+                        currentAnimation = action;
+                        
+                        // アニメーション終了時のイベント
+                        animationMixer.addEventListener('finished', () => {
+                            currentAnimation = null;
+                            // 次のアイドルアニメーションまでの時間をリセット
+                            idleTimer = 0;
+                            nextIdleTime = Math.random() * 5 + 3; // 3-8秒後
+                        });
+                        
+                        console.log(`Playing animation with axis corrections: ${animationKey}`);
+                    }
+                },
+                undefined,
+                (error) => {
+                    console.error('VRMA loading error:', error);
+                }
+            );
+        }
+
+        // ランダムなアイドルアニメーションを再生
+        function playRandomIdleAnimation() {
+            const animationKeys = Object.keys(VRMA_ANIMATIONS);
+            const randomKey = animationKeys[Math.floor(Math.random() * animationKeys.length)];
+            loadVRMAAnimation(randomKey);
+        }
+
+        // 初期化
+        function init() {
+            // レンダラー
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
+
+            // カメラ
+            camera = new THREE.PerspectiveCamera(30.0, window.innerWidth / window.innerHeight, 0.1, 20.0);
+            camera.position.set(0.0, 1.0, 5.0);
+
+            // カメラコントロール
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.screenSpacePanning = true;
+            controls.target.set(0.0, 1.0, 0.0);
+            controls.update();
+
+            // シーン
+            scene = new THREE.Scene();
+
+            // ライト
+            const light = new THREE.DirectionalLight(0xffffff, Math.PI);
+            light.position.set(1.0, 1.0, 1.0).normalize();
+            scene.add(light);
+
+            // デフォルトVRM読み込み
+            loadVRM('default');
+
+            // イベントリスナー
+            setupEventListeners();
+
+            // アニメーションループ開始
+            animate();
+        }
+
+        // VRM読み込み
+        function loadVRM(characterKey) {
+            const vrmUrl = VRM_CONFIGS[characterKey];
+            
+            const loader = new GLTFLoader();
+            loader.crossOrigin = 'anonymous';
+            
+            loader.register((parser) => {
+                return new VRMLoaderPlugin(parser);
+            });
+
+            loader.load(
+                vrmUrl,
+                (gltf) => {
+                    const vrm = gltf.userData.vrm;
+
+                    // 既存のVRMを削除
+                    if (currentVrm) {
+                        scene.remove(currentVrm.scene);
+                        VRMUtils.deepDispose(currentVrm.scene);
+                    }
+
+                    // 新しいVRMを追加
+                    VRMUtils.removeUnnecessaryVertices(gltf.scene);
+                    VRMUtils.removeUnnecessaryJoints(gltf.scene);
+                    VRMUtils.combineSkeletons(gltf.scene);
+
+                    // フラスタムカリング無効化
+                    vrm.scene.traverse((obj) => {
+                        obj.frustumCulled = false;
+                    });
+
+                    // キャラクターを正面向きに調整（180度回転）
+                    vrm.scene.rotation.y = Math.PI;
+                    
+                    // 自然なポーズに調整
+                    adjustCharacterPose(vrm);
+
+                    currentVrm = vrm;
+                    console.log(vrm);
+                    scene.add(vrm.scene);
+
+                    hideLoading();
+
+                    // アイドルアニメーションタイマーを開始
+                    idleTimer = 0;
+                    nextIdleTime = Math.random() * 3 + 2; // 2-5秒後に最初のアニメーション
+
+                    // キャラクター選択UIを更新
+                    updateCharacterSelector(characterKey);
+                },
+                (progress) => {
+                    // プログレス表示（コンソールのみ）
+                    const percentage = (progress.loaded / progress.total) * 100;
+                    console.log(`Loading... ${percentage.toFixed(1)}%`);
+                },
+                (error) => {
+                    console.error(error);
+                    hideLoading();
+                }
+            );
+        }
+
+        // イベントリスナー設定
+        function setupEventListeners() {
+            // ウィンドウリサイズ
+            window.addEventListener('resize', onWindowResize);
+
+            // チャット送信
+            document.getElementById('send-button').addEventListener('click', sendMessage);
+            document.getElementById('chat-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            // キャラクター選択
+            document.querySelectorAll('.character-option').forEach(option => {
+                option.addEventListener('click', (e) => {
+                    const characterKey = e.target.dataset.vrm;
+                    loadVRM(characterKey);
+                });
+            });
+        }
+
+        // メッセージ送信
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (message) {
+                console.log('User message:', message);
+                input.value = '';
+                input.disabled = true;
+                
+                try {
+                    // ChatGPT APIに送信
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            message: message,
+                            conversation_history: conversationHistory
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        console.log('AI Response:', data.response);
+                        
+                        // 会話履歴を更新
+                        conversationHistory.push(
+                            { role: 'user', content: message },
+                            { role: 'assistant', content: data.response }
+                        );
+                        
+                        // 会話履歴を最新10件に制限
+                        if (conversationHistory.length > 20) {
+                            conversationHistory = conversationHistory.slice(-20);
+                        }
+                        
+                        // キャラクターアニメーション
+                        if (data.animation_trigger && data.emotion) {
+                            triggerCharacterResponse(data.emotion);
+                        }
+                        
+                        // チャット表示エリアがあれば更新
+                        displayChatMessage('user', message);
+                        displayChatMessage('assistant', data.response);
+                        
+                        // 音声合成と再生
+                        await playCharacterVoice(data.response, data.emotion);
+                        
+                    } else {
+                        console.error('API Error:', data.error);
+                        alert('エラーが発生しました: ' + data.error);
+                    }
+                    
+                } catch (error) {
+                    console.error('Network Error:', error);
+                    alert('ネットワークエラーが発生しました');
+                } finally {
+                    input.disabled = false;
+                    input.focus();
+                }
+            }
+        }
+
+        // チャットメッセージ表示
+        function displayChatMessage(role, message) {
+            // 簡単なコンソール表示（後でUI拡張可能）
+            const prefix = role === 'user' ? 'あなた' : 'VRMちゃん';
+            console.log(`${prefix}: ${message}`);
+        }
+
+        // 音声再生と口パク機能
+        let isPlaying = false;
+        let lipSyncInterval = null;
+
+        async function playCharacterVoice(text, emotion) {
+            try {
+                console.log('音声合成を開始:', text);
+                
+                // にじボイスAPIに音声合成をリクエスト
+                const response = await fetch('/api/speak', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: text,
+                        emotion: emotion || 'greeting'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.audio_url) {
+                    console.log('音声URL取得成功:', data.audio_url);
+                    
+                    // 音声を再生
+                    const audio = new Audio(data.audio_url);
+                    
+                    // 音声再生開始時に口パク開始
+                    audio.addEventListener('play', () => {
+                        console.log('音声再生開始 - 口パク開始');
+                        startLipSync();
+                    });
+                    
+                    // 音声再生終了時に口パク停止
+                    audio.addEventListener('ended', () => {
+                        console.log('音声再生終了 - 口パク停止');
+                        stopLipSync();
+                    });
+                    
+                    // 音声再生エラー時に口パク停止
+                    audio.addEventListener('error', (e) => {
+                        console.error('音声再生エラー:', e);
+                        stopLipSync();
+                    });
+                    
+                    // 音声再生
+                    await audio.play();
+                    
+                } else {
+                    console.error('音声合成エラー:', data.error);
+                }
+                
+            } catch (error) {
+                console.error('音声再生エラー:', error);
+                stopLipSync();
+            }
+        }
+
+        // 口パク開始
+        function startLipSync() {
+            if (isPlaying || !currentVrm) return;
+            
+            isPlaying = true;
+            console.log('口パクアニメーション開始');
+            
+            // シンプルな口パク（口の開閉を繰り返す）
+            lipSyncInterval = setInterval(() => {
+                if (currentVrm && currentVrm.expressionManager) {
+                    // 口の開閉をランダムに制御
+                    const openAmount = Math.random() * 0.8 + 0.2; // 0.2-1.0の範囲
+                    
+                    // VRMの口の形状キーを制御
+                    try {
+                        currentVrm.expressionManager.setValue('aa', openAmount);
+                        currentVrm.expressionManager.update();
+                    } catch (e) {
+                        // 形状キーが存在しない場合は無視
+                        console.log('口の形状キーが見つかりません');
+                    }
+                }
+            }, 150); // 150msごとに口の形を変更
+        }
+
+        // 口パク停止
+        function stopLipSync() {
+            if (!isPlaying) return;
+            
+            isPlaying = false;
+            console.log('口パクアニメーション停止');
+            
+            // インターバルをクリア
+            if (lipSyncInterval) {
+                clearInterval(lipSyncInterval);
+                lipSyncInterval = null;
+            }
+            
+            // 口を閉じる
+            if (currentVrm && currentVrm.expressionManager) {
+                try {
+                    currentVrm.expressionManager.setValue('aa', 0);
+                    currentVrm.expressionManager.update();
+                } catch (e) {
+                    // 形状キーが存在しない場合は無視
+                }
+            }
+        }
+
+        // キャラクター反応
+        function triggerCharacterResponse(emotion) {
+            // 指定された感情に基づいてアニメーションを再生
+            if (VRMA_ANIMATIONS[emotion]) {
+                loadVRMAAnimation(emotion);
+                console.log(`Character responding with emotion: ${emotion}`);
+            } else {
+                // デフォルトアニメーション
+                playRandomIdleAnimation();
+                console.log(`Character responding with default animation`);
+            }
+        }
+
+        // キャラクター選択UI更新
+        function updateCharacterSelector(activeKey) {
+            document.querySelectorAll('.character-option').forEach(option => {
+                option.classList.remove('active');
+                if (option.dataset.vrm === activeKey) {
+                    option.classList.add('active');
+                }
+            });
+        }
+
+        // ウィンドウリサイズ
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // アニメーションループ
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const deltaTime = clock.getDelta();
+
+            if (currentVrm) {
+                currentVrm.update(deltaTime);
+                
+                // アニメーションミキサーの更新
+                if (animationMixer) {
+                    animationMixer.update(deltaTime);
+                }
+                
+                // アイドルアニメーションのタイマー管理
+                if (!currentAnimation) {
+                    idleTimer += deltaTime;
+                    if (idleTimer >= nextIdleTime) {
+                        playRandomIdleAnimation();
+                    }
+                }
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // ローディング非表示
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // キャラクターポーズを自然に調整
+        function adjustCharacterPose(vrm) {
+            try {
+                console.log('キャラクターポーズを自然に調整中...');
+                
+                const humanoid = vrm.humanoid;
+                if (!humanoid) {
+                    console.log('Humanoidが見つかりません');
+                    return;
+                }
+
+                // 両腕を自然に下げる（T字ポーズを修正）
+                const leftUpperArm = humanoid.getNormalizedBoneNode('leftUpperArm');
+                const rightUpperArm = humanoid.getNormalizedBoneNode('rightUpperArm');
+                
+                if (leftUpperArm) {
+                    leftUpperArm.rotation.z = 0.3; // 左腕を下げる
+                    leftUpperArm.rotation.x = 0.1; // 少し前に
+                }
+                
+                if (rightUpperArm) {
+                    rightUpperArm.rotation.z = -0.3; // 右腕を下げる
+                    rightUpperArm.rotation.x = 0.1; // 少し前に
+                }
+
+                // 肘を少し曲げる
+                const leftLowerArm = humanoid.getNormalizedBoneNode('leftLowerArm');
+                const rightLowerArm = humanoid.getNormalizedBoneNode('rightLowerArm');
+                
+                if (leftLowerArm) {
+                    leftLowerArm.rotation.y = -0.2; // 肘を曲げる
+                }
+                
+                if (rightLowerArm) {
+                    rightLowerArm.rotation.y = 0.2; // 肘を曲げる
+                }
+
+                // 手首を自然な角度に
+                const leftHand = humanoid.getNormalizedBoneNode('leftHand');
+                const rightHand = humanoid.getNormalizedBoneNode('rightHand');
+                
+                if (leftHand) {
+                    leftHand.rotation.x = -0.1; // 手首を少し下げる
+                    leftHand.rotation.z = 0.1; // 自然な角度
+                }
+                
+                if (rightHand) {
+                    rightHand.rotation.x = -0.1; // 手首を少し下げる
+                    rightHand.rotation.z = -0.1; // 自然な角度
+                }
+
+                // 肩を少しリラックスさせる
+                const leftShoulder = humanoid.getNormalizedBoneNode('leftShoulder');
+                const rightShoulder = humanoid.getNormalizedBoneNode('rightShoulder');
+                
+                if (leftShoulder) {
+                    leftShoulder.rotation.z = 0.1; // 肩を少し下げる
+                }
+                
+                if (rightShoulder) {
+                    rightShoulder.rotation.z = -0.1; // 肩を少し下げる
+                }
+
+                // 首を少し前に傾ける（より自然に）
+                const neck = humanoid.getNormalizedBoneNode('neck');
+                if (neck) {
+                    neck.rotation.x = 0.05; // 首を少し前に
+                }
+
+                console.log('キャラクターポーズ調整完了');
+                
+            } catch (error) {
+                console.error('ポーズ調整エラー:', error);
+            }
+        }
+
+        // 初期化実行
+        init();
+    </script>
+</body>
+</html>
+

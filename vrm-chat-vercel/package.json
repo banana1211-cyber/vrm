@@ -1,0 +1,31 @@
+{
+  "name": "vrm-chat-vercel",
+  "version": "1.0.0",
+  "description": "VRMキャラクターチャットアプリ - Vercel版",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'Building for Vercel...'",
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "keywords": [
+    "vrm",
+    "character",
+    "chat",
+    "threejs",
+    "nijivoice",
+    "3d",
+    "animation",
+    "vercel"
+  ],
+  "author": "VRM Chat App Team",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "openai": "^4.20.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+
