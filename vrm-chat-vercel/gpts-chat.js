@@ -1,6 +1,33 @@
-// GPTs連携用VRMキャラクターチャットAPI
+const { OpenAI } = require('openai');
+
+// OpenAI設定
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    baseURL: process.env.OPENAI_API_BASE || 'https://api.openai.com/v1'
+});
+
+// VRMキャラクターの設定
+const CHARACTER_SETTINGS = {
+    name: "VRMちゃん",
+    personality: "明るく親しみやすい性格で、ユーザーとの会話を楽しむVRMキャラクター。アニメーションやポーズを交えながら表現豊かに話す。",
+    system_prompt: `あなたは「VRMちゃん」という名前のVRMキャラクターです。以下の特徴を持っています：
+
+- 明るく親しみやすい性格
+- ユーザーとの会話を楽しむ
+- 時々アニメーションやポーズを交える
+- 日本語で自然に会話する
+- 感情豊かに表現する
+
+会話の際は、以下のアニメーションを適切なタイミングで使用してください：
+- greeting: 挨拶や初対面の時
+- v_sign: 嬉しい時や成功を祝う時
+- show_body: 自己紹介や説明をする時
+
+自然で親しみやすい会話を心がけてください。`
+};
+
 export default async function handler(req, res) {
-    // CORS設定（GPTsからのアクセスを許可）
+    // CORS設定
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key');
@@ -10,91 +37,107 @@ export default async function handler(req, res) {
         return;
     }
 
-    // POST以外のメソッドを拒否
+    // GETリクエストの処理（テスト用）
+    if (req.method === 'GET') {
+        res.status(200).json({
+            success: true,
+            message: "VRM Chat API is working!",
+            character: CHARACTER_SETTINGS.name,
+            model: "gpt-4o",
+            endpoint: "/api/chat",
+            methods: ["POST"],
+            example: {
+                message: "こんにちは！",
+                history: []
+            }
+        });
+        return;
+    }
+
     if (req.method !== 'POST') {
         return res.status(405).json({
             success: false,
-            error: 'Method not allowed. Use POST method.'
+            error: 'Method not allowed'
         });
     }
 
     try {
-        const { 
-            message, 
-            character_name = "VRMちゃん",
-            emotion = "greeting",
-            api_key 
-        } = req.body;
-
-        // 基本的なバリデーション
+        const { message, history = [] } = req.body;
+        
         if (!message) {
             return res.status(400).json({
                 success: false,
-                error: 'Message is required',
+                error: 'メッセージが必要です',
                 example: {
                     message: "こんにちは！",
-                    character_name: "VRMちゃん",
-                    emotion: "greeting"
+                    history: []
                 }
             });
         }
 
-        // API Key検証（オプション）
-        const VALID_API_KEY = process.env.GPTS_API_KEY || 'vrm-chat-2024';
-        if (api_key && api_key !== VALID_API_KEY) {
-            return res.status(401).json({
-                success: false,
-                error: 'Invalid API key'
-            });
+        // 会話履歴を構築
+        const messages = [
+            { role: 'system', content: CHARACTER_SETTINGS.system_prompt },
+            ...history,
+            { role: 'user', content: message }
+        ];
+
+        // OpenAI ChatGPT API呼び出し（GPT-4o使用）
+        const completion = await openai.chat.completions.create({
+            model: 'gpt-4o',
+            messages: messages,
+            max_tokens: 500,
+            temperature: 0.8,
+            presence_penalty: 0.1,
+            frequency_penalty: 0.1
+        });
+
+        const aiResponse = completion.choices[0].message.content;
+        
+        // 感情・アニメーションを決定
+        let emotion = 'greeting';
+        if (aiResponse.includes('嬉しい') || aiResponse.includes('やった') || aiResponse.includes('成功')) {
+            emotion = 'v_sign';
+        } else if (aiResponse.includes('説明') || aiResponse.includes('紹介') || aiResponse.includes('について')) {
+            emotion = 'show_body';
         }
 
-        // 利用可能なアニメーション一覧
-        const AVAILABLE_ANIMATIONS = {
-            'greeting': '挨拶・初対面',
-            'v_sign': '嬉しい・成功',
-            'show_body': '自己紹介・説明'
-        };
-
-        // 感情からアニメーションを決定
-        let animation = emotion;
-        if (!AVAILABLE_ANIMATIONS[emotion]) {
-            animation = 'greeting'; // デフォルト
-        }
-
-        // VRMキャラクターへのメッセージ送信をシミュレート
-        const response_message = `${character_name}が「${message}」というメッセージを受け取りました。`;
-
-        // GPTs向けのレスポンス
-        const response_data = {
+        // レスポンス
+        const responseData = {
             success: true,
-            data: {
-                character_name: character_name,
-                received_message: message,
-                response: response_message,
-                animation: animation,
-                animation_description: AVAILABLE_ANIMATIONS[animation],
-                timestamp: new Date().toISOString(),
-                status: "Message sent to VRM character successfully"
-            },
-            meta: {
-                api_version: "1.0",
-                endpoint: "/api/gpts-chat",
-                available_animations: AVAILABLE_ANIMATIONS
-            }
+            response: aiResponse,
+            emotion: emotion,
+            animation_trigger: true,
+            character_name: CHARACTER_SETTINGS.name,
+            model_used: 'gpt-4o',
+            timestamp: new Date().toISOString()
         };
 
-        // 成功レスポンス
-        res.status(200).json(response_data);
+        res.json(responseData);
 
     } catch (error) {
-        console.error('GPTs Chat API Error:', error);
+        console.error('ChatGPT API Error:', error);
         
-        // エラーレスポンス
-        res.status(500).json({
+        // エラーの詳細を判定
+        let errorMessage = 'ChatGPT APIエラーが発生しました';
+        let statusCode = 500;
+        
+        if (error.code === 'insufficient_quota') {
+            errorMessage = 'API使用量の上限に達しました';
+            statusCode = 429;
+        } else if (error.code === 'invalid_api_key') {
+            errorMessage = 'APIキーが無効です';
+            statusCode = 401;
+        } else if (error.code === 'model_not_found') {
+            errorMessage = 'モデルが見つかりません';
+            statusCode = 400;
+        }
+        
+        res.status(statusCode).json({
             success: false,
-            error: 'Internal server error',
-            message: 'VRMキャラクターとの通信でエラーが発生しました',
+            error: errorMessage,
             details: error.message,
+            model: 'gpt-4o',
             timestamp: new Date().toISOString()
         });
     }
