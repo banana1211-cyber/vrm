@@ -196,38 +196,6 @@
             'v_sign': '/assets/vrma/VRMA_03.vrma'
         };
 
-        // キャラクターのポーズを自然な立ちポーズに調整
-        function adjustCharacterPose(vrm) {
-            if (!vrm.humanoid) return;
-            
-            // 両腕を自然に下げる
-            const leftShoulder = vrm.humanoid.getNormalizedBoneNode('leftShoulder');
-            const rightShoulder = vrm.humanoid.getNormalizedBoneNode('rightShoulder');
-            const leftUpperArm = vrm.humanoid.getNormalizedBoneNode('leftUpperArm');
-            const rightUpperArm = vrm.humanoid.getNormalizedBoneNode('rightUpperArm');
-            const leftLowerArm = vrm.humanoid.getNormalizedBoneNode('leftLowerArm');
-            const rightLowerArm = vrm.humanoid.getNormalizedBoneNode('rightLowerArm');
-            
-            if (leftShoulder) {
-                leftShoulder.rotation.set(0, 0, 0);
-            }
-            if (rightShoulder) {
-                rightShoulder.rotation.set(0, 0, 0);
-            }
-            if (leftUpperArm) {
-                leftUpperArm.rotation.set(0, 0, 0.2); // 少し内側に
-            }
-            if (rightUpperArm) {
-                rightUpperArm.rotation.set(0, 0, -0.2); // 少し内側に
-            }
-            if (leftLowerArm) {
-                leftLowerArm.rotation.set(0, 0, 0.1); // 軽く曲げる
-            }
-            if (rightLowerArm) {
-                rightLowerArm.rotation.set(0, 0, -0.1); // 軽く曲げる
-            }
-        }
-
         // VRMAアニメーション読み込み
         function loadVRMAAnimation(animationKey) {
             if (!currentVrm) return;
@@ -438,8 +406,8 @@
 
             // キャラクター選択
             document.querySelectorAll('.character-option').forEach(option => {
-                option.addEventListener('click', (e) => {
-                    const characterKey = e.target.dataset.vrm;
+                option.addEventListener('click', () => {
+                    const characterKey = option.dataset.vrm;
                     loadVRM(characterKey);
                 });
             });
@@ -450,54 +418,56 @@
             const input = document.getElementById('chat-input');
             const message = input.value.trim();
             
-            if (message) {
-                console.log('User message:', message);
-                input.value = '';
-                input.disabled = true;
+            if (!message) return;
+            
+            // 入力欄をクリア
+            input.value = '';
+            input.disabled = true;
+            
+            // ユーザーメッセージを表示
+            displayChatMessage('user', message);
+            
+            try {
+                // ChatGPT APIに送信
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        history: conversationHistory
+                    })
+                });
                 
-                try {
-                    // ChatGPT APIに送信
-                    const response = await fetch('/api/chat', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            message: message,
-                            conversation_history: conversationHistory
-                        })
-                    });
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 会話履歴に追加
+                    conversationHistory.push(
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: data.response }
+                    );
                     
-                    const data = await response.json();
+                    // 会話履歴を最新10件に制限
+                    if (conversationHistory.length > 20) {
+                        conversationHistory = conversationHistory.slice(-20);
+                    }
                     
-                    if (data.success) {
-                        console.log('AI Response:', data.response);
-                        
-                        // 会話履歴を更新
-                        conversationHistory.push(
-                            { role: 'user', content: message },
-                            { role: 'assistant', content: data.response }
-                        );
-                        
-                        // 会話履歴を最新10件に制限
-                        if (conversationHistory.length > 20) {
-                            conversationHistory = conversationHistory.slice(-20);
-                        }
-                        
-                        // キャラクターアニメーション
-                        if (data.animation_trigger && data.emotion) {
-                            triggerCharacterResponse(data.emotion);
-                        }
-                        
-                        // チャット表示エリアがあれば更新
-                        displayChatMessage('user', message);
-                        displayChatMessage('assistant', data.response);
-                        
-                        // 音声合成と再生
+                    // AIの応答を表示
+                    displayChatMessage('assistant', data.response);
+                    
+                    // キャラクターの反応
+                    triggerCharacterResponse(data.emotion || 'greeting');
+                    
+                    // 音声再生
+                    if (data.response) {
                         await playCharacterVoice(data.response, data.emotion);
-                        
-                    } else {
-                        console.error('API Error:', data.error);
+                    }
+                    
+                } else {
+                    console.error('API Error:', data.error);
+                    if (data.error) {
                         alert('エラーが発生しました: ' + data.error);
                     }
                     
