@@ -1,12 +1,12 @@
 {
   "version": 2,
   "name": "vrm-chat-app",
-  "builds": [
-    {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 30,
+      "runtime": "nodejs18.x"
     }
-  ],
+  },
   "routes": [
     {
       "src": "/api/(.*)",
@@ -17,11 +17,6 @@
       "dest": "/$1"
     }
   ],
-  "functions": {
-    "api/**/*.js": {
-      "maxDuration": 30
-    }
-  },
   "env": {
     "OPENAI_API_KEY": "@openai-api-key",
     "OPENAI_API_BASE": "@openai-api-base",
@@ -29,4 +24,3 @@
     "NIJIVOICE_CHARACTER_ID": "@nijivoice-character-id"
   }
 }
-
