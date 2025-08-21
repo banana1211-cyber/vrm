@@ -17,10 +17,3 @@
       "dest": "/$1"
     }
   ],
-  "env": {
-    "OPENAI_API_KEY": "@openai-api-key",
-    "OPENAI_API_BASE": "@openai-api-base",
-    "NIJIVOICE_API_KEY": "@nijivoice-api-key",
-    "NIJIVOICE_CHARACTER_ID": "@nijivoice-character-id"
-  }
-}
