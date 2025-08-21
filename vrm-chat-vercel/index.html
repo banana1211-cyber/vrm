@@ -3,10 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <title>VRMキャラクターチャットアプリ</title>
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <style>
         body {
             margin: 0;
@@ -133,8 +130,6 @@
             border-color: #764ba2;
             box-shadow: 0 0 15px rgba(118, 75, 162, 0.5);
         }
-        
-
     </style>
 </head>
 
@@ -144,7 +139,6 @@
         <div>VRMキャラクターを読み込んでいます...</div>
     </div>
     
-
     <div id="character-selector">
         <div class="character-option active" data-vrm="default" style="background-image: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23667eea%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2220%22>👤</text></svg>')"></div>
         <div class="character-option" data-vrm="character2" style="background-image: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23764ba2%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2220%22>👩</text></svg>')"></div>
@@ -179,8 +173,8 @@
         let currentAnimation = null;
         let animationMixer = null;
         let idleTimer = 0;
-        let nextIdleTime = 5; // 5秒後に次のアニメーション
-        let conversationHistory = []; // 会話履歴
+        let nextIdleTime = 5;
+        let conversationHistory = [];
 
         // VRMファイルの設定
         const VRM_CONFIGS = {
@@ -196,35 +190,47 @@
             'v_sign': '/assets/vrma/VRMA_03.vrma'
         };
 
-        // キャラクターのポーズを自然な立ちポーズに調整
+        // キャラクターポーズを自然に調整
         function adjustCharacterPose(vrm) {
-            if (!vrm.humanoid) return;
-            
-            // 両腕を自然に下げる
-            const leftShoulder = vrm.humanoid.getNormalizedBoneNode('leftShoulder');
-            const rightShoulder = vrm.humanoid.getNormalizedBoneNode('rightShoulder');
-            const leftUpperArm = vrm.humanoid.getNormalizedBoneNode('leftUpperArm');
-            const rightUpperArm = vrm.humanoid.getNormalizedBoneNode('rightUpperArm');
-            const leftLowerArm = vrm.humanoid.getNormalizedBoneNode('leftLowerArm');
-            const rightLowerArm = vrm.humanoid.getNormalizedBoneNode('rightLowerArm');
-            
-            if (leftShoulder) {
-                leftShoulder.rotation.set(0, 0, 0);
-            }
-            if (rightShoulder) {
-                rightShoulder.rotation.set(0, 0, 0);
-            }
-            if (leftUpperArm) {
-                leftUpperArm.rotation.set(0, 0, 0.2); // 少し内側に
-            }
-            if (rightUpperArm) {
-                rightUpperArm.rotation.set(0, 0, -0.2); // 少し内側に
-            }
-            if (leftLowerArm) {
-                leftLowerArm.rotation.set(0, 0, 0.1); // 軽く曲げる
-            }
-            if (rightLowerArm) {
-                rightLowerArm.rotation.set(0, 0, -0.1); // 軽く曲げる
+            try {
+                console.log('キャラクターポーズを自然に調整中...');
+                
+                const humanoid = vrm.humanoid;
+                if (!humanoid) {
+                    console.log('Humanoidが見つかりません');
+                    return;
+                }
+
+                // 両腕を自然に下げる
+                const leftUpperArm = humanoid.getNormalizedBoneNode('leftUpperArm');
+                const rightUpperArm = humanoid.getNormalizedBoneNode('rightUpperArm');
+                
+                if (leftUpperArm) {
+                    leftUpperArm.rotation.z = 0.3;
+                    leftUpperArm.rotation.x = 0.1;
+                }
+                
+                if (rightUpperArm) {
+                    rightUpperArm.rotation.z = -0.3;
+                    rightUpperArm.rotation.x = 0.1;
+                }
+
+                // 肘を少し曲げる
+                const leftLowerArm = humanoid.getNormalizedBoneNode('leftLowerArm');
+                const rightLowerArm = humanoid.getNormalizedBoneNode('rightLowerArm');
+                
+                if (leftLowerArm) {
+                    leftLowerArm.rotation.y = -0.2;
+                }
+                
+                if (rightLowerArm) {
+                    rightLowerArm.rotation.y = 0.2;
+                }
+
+                console.log('キャラクターポーズ調整完了');
+                
+            } catch (error) {
+                console.error('ポーズ調整エラー:', error);
             }
         }
 
@@ -240,9 +246,48 @@
             
             loader.load(
                 vrmaUrl,
-                (gltf) => {
+                function(gltf) {
                     const animations = gltf.animations;
                     if (animations && animations.length > 0) {
+                        console.log('VRMA animation loaded, applying axis corrections...');
+                        
+                        // アニメーションの各トラックを修正
+                        animations.forEach(function(animation) {
+                            animation.tracks.forEach(function(track) {
+                                // X軸の位置データを反転修正
+                                if (track.name.includes('.position') && track.name.includes('X')) {
+                                    console.log('Correcting X-axis position for track:', track.name);
+                                    for (let i = 0; i < track.values.length; i++) {
+                                        track.values[i] *= -1;
+                                    }
+                                }
+                                
+                                // Y軸の位置データを反転修正
+                                if (track.name.includes('.position') && track.name.includes('Y')) {
+                                    console.log('Correcting Y-axis position for track:', track.name);
+                                    for (let i = 0; i < track.values.length; i++) {
+                                        track.values[i] *= -1;
+                                    }
+                                }
+                                
+                                // X軸の回転データを反転修正
+                                if (track.name.includes('.quaternion') && track.name.includes('X')) {
+                                    console.log('Correcting X-axis rotation for track:', track.name);
+                                    for (let i = 0; i < track.values.length; i += 4) {
+                                        track.values[i] *= -1;
+                                    }
+                                }
+                                
+                                // Y軸の回転データを反転修正
+                                if (track.name.includes('.quaternion') && track.name.includes('Y')) {
+                                    console.log('Correcting Y-axis rotation for track:', track.name);
+                                    for (let i = 1; i < track.values.length; i += 4) {
+                                        track.values[i] *= -1;
+                                    }
+                                }
+                            });
+                        });
+                        
                         // アニメーションミキサーを作成
                         if (animationMixer) {
                             animationMixer.stopAllAction();
@@ -259,18 +304,17 @@
                         currentAnimation = action;
                         
                         // アニメーション終了時のイベント
-                        animationMixer.addEventListener('finished', () => {
+                        animationMixer.addEventListener('finished', function() {
                             currentAnimation = null;
-                            // 次のアイドルアニメーションまでの時間をリセット
                             idleTimer = 0;
-                            nextIdleTime = Math.random() * 5 + 3; // 3-8秒後
+                            nextIdleTime = Math.random() * 5 + 3;
                         });
                         
-                        console.log(`Playing animation: ${animationKey}`);
+                        console.log('Playing animation with axis corrections: ' + animationKey);
                     }
                 },
                 undefined,
-                (error) => {
+                function(error) {
                     console.error('VRMA loading error:', error);
                 }
             );
@@ -328,13 +372,13 @@
             const loader = new GLTFLoader();
             loader.crossOrigin = 'anonymous';
             
-            loader.register((parser) => {
+            loader.register(function(parser) {
                 return new VRMLoaderPlugin(parser);
             });
 
             loader.load(
                 vrmUrl,
-                (gltf) => {
+                function(gltf) {
                     const vrm = gltf.userData.vrm;
 
                     // 既存のVRMを削除
@@ -349,11 +393,11 @@
                     VRMUtils.combineSkeletons(gltf.scene);
 
                     // フラスタムカリング無効化
-                    vrm.scene.traverse((obj) => {
+                    vrm.scene.traverse(function(obj) {
                         obj.frustumCulled = false;
                     });
 
-                    // キャラクターを正面向きに調整（180度回転）
+                    // キャラクターを正面向きに調整
                     vrm.scene.rotation.y = Math.PI;
                     
                     // 自然なポーズに調整
@@ -367,17 +411,16 @@
 
                     // アイドルアニメーションタイマーを開始
                     idleTimer = 0;
-                    nextIdleTime = Math.random() * 3 + 2; // 2-5秒後に最初のアニメーション
+                    nextIdleTime = Math.random() * 3 + 2;
 
                     // キャラクター選択UIを更新
                     updateCharacterSelector(characterKey);
                 },
-                (progress) => {
-                    // プログレス表示（コンソールのみ）
+                function(progress) {
                     const percentage = (progress.loaded / progress.total) * 100;
-                    console.log(`Loading... ${percentage.toFixed(1)}%`);
+                    console.log('Loading... ' + percentage.toFixed(1) + '%');
                 },
-                (error) => {
+                function(error) {
                     console.error(error);
                     hideLoading();
                 }
@@ -386,112 +429,40 @@
 
         // イベントリスナー設定
         function setupEventListeners() {
-            // ウィンドウリサイズ
             window.addEventListener('resize', onWindowResize);
 
-            // チャット送信
             document.getElementById('send-button').addEventListener('click', sendMessage);
-            document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            document.getElementById('chat-input').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     sendMessage();
                 }
             });
 
-            // キャラクター選択
-            document.querySelectorAll('.character-option').forEach(option => {
-                option.addEventListener('click', (e) => {
-                    const characterKey = e.target.dataset.vrm;
+            document.querySelectorAll('.character-option').forEach(function(option) {
+                option.addEventListener('click', function() {
+                    const characterKey = option.dataset.vrm;
                     loadVRM(characterKey);
                 });
             });
         }
 
-        // メッセージ送信
-        async function sendMessage() {
+        // メッセージ送信（シンプル版）
+        function sendMessage() {
             const input = document.getElementById('chat-input');
             const message = input.value.trim();
             
-            if (message) {
-                console.log('User message:', message);
-                input.value = '';
-                input.disabled = true;
-                
-                try {
-                    // ChatGPT APIに送信
-                    const response = await fetch('/api/chat', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            message: message,
-                            conversation_history: conversationHistory
-                        })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        console.log('AI Response:', data.response);
-                        
-                        // 会話履歴を更新
-                        conversationHistory.push(
-                            { role: 'user', content: message },
-                            { role: 'assistant', content: data.response }
-                        );
-                        
-                        // 会話履歴を最新10件に制限
-                        if (conversationHistory.length > 20) {
-                            conversationHistory = conversationHistory.slice(-20);
-                        }
-                        
-                        // キャラクターアニメーション
-                        if (data.animation_trigger && data.emotion) {
-                            triggerCharacterResponse(data.emotion);
-                        }
-                        
-                        // チャット表示エリアがあれば更新
-                        displayChatMessage('user', message);
-                        displayChatMessage('assistant', data.response);
-                        
-                    } else {
-                        console.error('API Error:', data.error);
-                        alert('エラーが発生しました: ' + data.error);
-                    }
-                    
-                } catch (error) {
-                    console.error('Network Error:', error);
-                    alert('ネットワークエラーが発生しました');
-                } finally {
-                    input.disabled = false;
-                    input.focus();
-                }
-            }
-        }
-
-        // チャットメッセージ表示
-        function displayChatMessage(role, message) {
-            // 簡単なコンソール表示（後でUI拡張可能）
-            const prefix = role === 'user' ? 'あなた' : 'VRMちゃん';
-            console.log(`${prefix}: ${message}`);
-        }
-
-        // キャラクター反応
-        function triggerCharacterResponse(emotion) {
-            // 指定された感情に基づいてアニメーションを再生
-            if (VRMA_ANIMATIONS[emotion]) {
-                loadVRMAAnimation(emotion);
-                console.log(`Character responding with emotion: ${emotion}`);
-            } else {
-                // デフォルトアニメーション
-                playRandomIdleAnimation();
-                console.log(`Character responding with default animation`);
-            }
+            if (!message) return;
+            
+            input.value = '';
+            console.log('ユーザー: ' + message);
+            
+            // アニメーション再生
+            playRandomIdleAnimation();
         }
 
         // キャラクター選択UI更新
         function updateCharacterSelector(activeKey) {
-            document.querySelectorAll('.character-option').forEach(option => {
+            document.querySelectorAll('.character-option').forEach(function(option) {
                 option.classList.remove('active');
                 if (option.dataset.vrm === activeKey) {
                     option.classList.add('active');
@@ -515,12 +486,10 @@
             if (currentVrm) {
                 currentVrm.update(deltaTime);
                 
-                // アニメーションミキサーの更新
                 if (animationMixer) {
                     animationMixer.update(deltaTime);
                 }
                 
-                // アイドルアニメーションのタイマー管理
                 if (!currentAnimation) {
                     idleTimer += deltaTime;
                     if (idleTimer >= nextIdleTime) {
@@ -543,3 +512,4 @@
     </script>
 </body>
 </html>
+
