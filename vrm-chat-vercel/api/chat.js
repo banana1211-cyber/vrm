@@ -1,9 +1,8 @@
-const { OpenAI } = require('openai');
+import OpenAI from 'openai';
 
 // OpenAI設定
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-    baseURL: process.env.OPENAI_API_BASE
+    apiKey: process.env.OPENAI_API_KEY
 });
 
 // VRMキャラクターの設定
@@ -68,7 +67,7 @@ export default async function handler(req, res) {
 
         // OpenAI ChatGPT API呼び出し
         const completion = await openai.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4-turbo',
             messages: messages,
             max_tokens: 500,
             temperature: 0.8
