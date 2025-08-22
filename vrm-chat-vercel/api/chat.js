@@ -61,7 +61,7 @@ export default async function handler(req, res) {
 
         // OpenAI GPT-5 API呼び出し
         const completion = await openai.chat.completions.create({
-            model: 'gpt-5',
+            model: 'gpt-4o',
             messages: messages,
             max_tokens: 500,
             temperature: 0.7,
