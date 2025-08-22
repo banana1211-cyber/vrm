@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>VRMキャラクターチャットアプリ - ギャル風占い師</title>
+    <title>VRMキャラクターチャットアプリ</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <style>
         body {
@@ -66,44 +66,8 @@
             z-index: 100;
         }
         
-        #chat-messages {
-            max-height: 200px;
-            overflow-y: auto;
-            margin-bottom: 15px;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 15px;
-            display: none;
-        }
-        
-        .message {
-            margin: 10px 0;
-            padding: 8px 12px;
-            border-radius: 15px;
-            max-width: 80%;
-        }
-        
-        .user-message {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            margin-left: auto;
-            text-align: right;
-        }
-        
-        .ai-message {
-            background: rgba(255, 255, 255, 0.9);
-            color: #333;
-            margin-right: auto;
-        }
-        
-        #chat-input-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
         #chat-input {
-            flex: 1;
+            width: calc(100% - 80px);
             padding: 12px 20px;
             border: none;
             border-radius: 20px;
@@ -122,6 +86,7 @@
             color: white;
             font-size: 18px;
             cursor: pointer;
+            margin-left: 10px;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
@@ -141,16 +106,21 @@
             position: fixed;
             top: 20px;
             right: 20px;
-            display: flex;
-            gap: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
             z-index: 100;
         }
         
         .character-option {
+            display: block;
             width: 60px;
             height: 60px;
-            border-radius: 50%;
-            border: 3px solid rgba(255, 255, 255, 0.5);
+            margin: 10px 0;
+            border: 3px solid transparent;
+            border-radius: 10px;
             cursor: pointer;
             transition: all 0.3s ease;
             background-size: cover;
@@ -158,219 +128,120 @@
         }
         
         .character-option:hover {
-            border-color: white;
+            border-color: #667eea;
             transform: scale(1.1);
         }
         
         .character-option.active {
-            border-color: #667eea;
-            box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+            border-color: #764ba2;
+            box-shadow: 0 0 15px rgba(118, 75, 162, 0.5);
+        }
+
+        #chat-messages {
+            max-height: 150px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 15px;
+            display: none;
         }
         
-        #status {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.7);
+        .message {
+            margin: 8px 0;
+            padding: 8px 12px;
+            border-radius: 15px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        
+        .user-message {
+            background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
-            padding: 10px 15px;
-            border-radius: 10px;
-            font-size: 14px;
-            z-index: 100;
+            margin-left: auto;
+            text-align: right;
+        }
+        
+        .ai-message {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            margin-right: auto;
         }
     </style>
 </head>
+
 <body>
     <div id="loading">
         <div class="loading-spinner"></div>
-        <div>VRMキャラクターを読み込み中...</div>
+        <div>VRMキャラクターを読み込んでいます...</div>
     </div>
     
-    <div id="status">ギャル風占い師 - 準備中</div>
-    
     <div id="character-selector">
-        <div class="character-option active" data-vrm="character1" style="background-image: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%23ff6b9d%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2220%22>1</text></svg>')"></div>
-        <div class="character-option" data-vrm="character2" style="background-image: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%236c5ce7%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2220%22>2</text></svg>')"></div>
-        <div class="character-option" data-vrm="character3" style="background-image: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%2300b894%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2220%22>3</text></svg>')"></div>
+        <div class="character-option active" data-vrm="default" style="background-image: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23667eea%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2220%22>👤</text></svg>')"></div>
+        <div class="character-option" data-vrm="character2" style="background-image: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23764ba2%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2220%22>👩</text></svg>')"></div>
+        <div class="character-option" data-vrm="character3" style="background-image: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23f093fb%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2220%22>🧑</text></svg>')"></div>
     </div>
     
     <div id="chat-container">
         <div id="chat-messages"></div>
-        <div id="chat-input-container">
-            <input type="text" id="chat-input" placeholder="占いについて聞いてみて♪" />
-            <button id="send-button">送信</button>
-        </div>
+        <input type="text" id="chat-input" placeholder="占いについて聞いてみて♪" />
+        <button id="send-button">送信</button>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@1.0.0/lib/three-vrm.min.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.177.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.177.0/examples/jsm/",
+                "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3/lib/three-vrm.module.min.js"
+            }
+        }
+    </script>
 
-    <script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+
         // グローバル変数
-        let scene, camera, renderer, controls, clock;
-        let currentVrm = null;
-        let animationMixer = null;
+        let currentVrm = undefined;
+        let scene, camera, renderer, controls;
+        let clock = new THREE.Clock();
         let currentAnimation = null;
+        let animationMixer = null;
         let idleTimer = 0;
         let nextIdleTime = 5;
         let conversationHistory = [];
 
-        // VRMキャラクター設定
-        const VRM_CHARACTERS = {
-            character1: {
-                url: 'https://vrm-chat-app1234.vercel.app/assets/VRMA_01.vrm',
-                name: 'ミコちゃん'
-            },
-            character2: {
-                url: 'https://vrm-chat-app1234.vercel.app/assets/VRMA_01.vrm',
-                name: 'アヤちゃん'
-            },
-            character3: {
-                url: 'https://vrm-chat-app1234.vercel.app/assets/VRMA_01.vrm',
-                name: 'ユイちゃん'
-            }
+        // VRMファイルの設定
+        const VRM_CONFIGS = {
+            'default': '/assets/vrm/6156990452426395380.vrm',
+            'character2': '/assets/vrm/6156990452426395380.vrm',
+            'character3': '/assets/vrm/6156990452426395380.vrm'
         };
 
-        // アニメーション設定
-        const ANIMATIONS = {
-            greeting: 'https://vrm-chat-app1234.vercel.app/assets/greeting.vrma',
-            v_sign: 'https://vrm-chat-app1234.vercel.app/assets/v_sign.vrma',
-            show_body: 'https://vrm-chat-app1234.vercel.app/assets/show_body.vrma'
+        // VRMAアニメーションファイルの設定
+        const VRMA_ANIMATIONS = {
+            'show_body': '/assets/vrma/VRMA_01.vrma',
+            'greeting': '/assets/vrma/VRMA_02.vrma',
+            'v_sign': '/assets/vrma/VRMA_03.vrma'
         };
 
-        // 初期化
-        function init() {
-            console.log('VRMチャットアプリを初期化中...');
-            
-            // Three.js基本設定
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setClearColor(0x000000, 0);
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            document.body.appendChild(renderer.domElement);
-
-            // カメラ制御
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.05;
-            controls.enableZoom = true;
-            controls.enablePan = false;
-            controls.maxPolarAngle = Math.PI / 2;
-            controls.minDistance = 1;
-            controls.maxDistance = 5;
-
-            // カメラ位置
-            camera.position.set(0, 1.5, 2);
-            controls.target.set(0, 1, 0);
-
-            // 時計
-            clock = new THREE.Clock();
-
-            // ライト設定
-            setupLights();
-
-            // イベントリスナー設定
-            setupEventListeners();
-
-            // デフォルトキャラクター読み込み
-            loadVRM('character1');
-
-            // アニメーションループ開始
-            animate();
-
-            console.log('初期化完了');
-        }
-
-        // ライト設定
-        function setupLights() {
-            // 環境光
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-            scene.add(ambientLight);
-
-            // 指向性ライト
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(1, 2, 1);
-            directionalLight.castShadow = true;
-            directionalLight.shadow.mapSize.width = 2048;
-            directionalLight.shadow.mapSize.height = 2048;
-            scene.add(directionalLight);
-
-            // 補助ライト
-            const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
-            fillLight.position.set(-1, 1, -1);
-            scene.add(fillLight);
-        }
-
-        // VRM読み込み
-        function loadVRM(characterKey) {
-            const character = VRM_CHARACTERS[characterKey];
-            if (!character) return;
-
-            console.log(`${character.name}を読み込み中...`);
-            updateStatus(`${character.name}を読み込み中...`);
-
-            // 既存のVRMを削除
-            if (currentVrm) {
-                scene.remove(currentVrm.scene);
-                currentVrm = null;
-            }
-
-            // VRM読み込み
-            const loader = new THREE.GLTFLoader();
-            loader.load(
-                character.url,
-                function(gltf) {
-                    THREE.VRMUtils.removeUnnecessaryJoints(gltf.scene);
-                    THREE.VRM.from(gltf).then(function(vrm) {
-                        console.log(`${character.name}読み込み完了`);
-                        
-                        // VRMを180度回転（正面を向くように）
-                        vrm.scene.rotation.y = Math.PI;
-                        
-                        // 自然なポーズに調整
-                        adjustCharacterPose(vrm);
-
-                        currentVrm = vrm;
-                        scene.add(vrm.scene);
-
-                        hideLoading();
-                        updateStatus(`${character.name} - ギャル風占い師`);
-
-                        // アイドルアニメーションタイマーを開始
-                        idleTimer = 0;
-                        nextIdleTime = Math.random() * 3 + 2;
-
-                        // キャラクター選択UIを更新
-                        updateCharacterSelector(characterKey);
-                    });
-                },
-                function(progress) {
-                    const percentage = (progress.loaded / progress.total) * 100;
-                    console.log('Loading... ' + percentage.toFixed(1) + '%');
-                },
-                function(error) {
-                    console.error('VRM読み込みエラー:', error);
-                    hideLoading();
-                    updateStatus('読み込みエラー');
-                }
-            );
-        }
-
-        // キャラクターポーズ調整
+        // キャラクターポーズを自然に調整
         function adjustCharacterPose(vrm) {
-            if (!vrm.humanoid) return;
-            
-            console.log('キャラクターポーズを自然に調整中...');
-            
             try {
+                console.log('キャラクターポーズを自然に調整中...');
+                
+                const humanoid = vrm.humanoid;
+                if (!humanoid) {
+                    console.log('Humanoidが見つかりません');
+                    return;
+                }
+
                 // 肩の調整
-                const leftShoulder = vrm.humanoid.getNormalizedBoneNode('leftShoulder');
-                const rightShoulder = vrm.humanoid.getNormalizedBoneNode('rightShoulder');
+                const leftShoulder = humanoid.getNormalizedBoneNode('leftShoulder');
+                const rightShoulder = humanoid.getNormalizedBoneNode('rightShoulder');
                 
                 if (leftShoulder) {
                     leftShoulder.rotation.set(0.1, 0, 0.1);
@@ -380,8 +251,8 @@
                 }
                 
                 // 腕の調整
-                const leftUpperArm = vrm.humanoid.getNormalizedBoneNode('leftUpperArm');
-                const rightUpperArm = vrm.humanoid.getNormalizedBoneNode('rightUpperArm');
+                const leftUpperArm = humanoid.getNormalizedBoneNode('leftUpperArm');
+                const rightUpperArm = humanoid.getNormalizedBoneNode('rightUpperArm');
                 
                 if (leftUpperArm) {
                     leftUpperArm.rotation.set(0.2, 0, 0.3);
@@ -391,8 +262,8 @@
                 }
                 
                 // 肘の調整
-                const leftLowerArm = vrm.humanoid.getNormalizedBoneNode('leftLowerArm');
-                const rightLowerArm = vrm.humanoid.getNormalizedBoneNode('rightLowerArm');
+                const leftLowerArm = humanoid.getNormalizedBoneNode('leftLowerArm');
+                const rightLowerArm = humanoid.getNormalizedBoneNode('rightLowerArm');
                 
                 if (leftLowerArm) {
                     leftLowerArm.rotation.set(0, 0, 0.2);
@@ -402,7 +273,7 @@
                 }
                 
                 // 首の調整
-                const neck = vrm.humanoid.getNormalizedBoneNode('neck');
+                const neck = humanoid.getNormalizedBoneNode('neck');
                 if (neck) {
                     neck.rotation.set(0.1, 0, 0);
                 }
@@ -414,12 +285,15 @@
         }
 
         // VRMAアニメーション読み込み
-        function loadVRMAAnimation(animationUrl) {
+        function loadVRMAAnimation(animationKey) {
             if (!currentVrm) return;
+
+            const animationUrl = VRMA_ANIMATIONS[animationKey];
+            if (!animationUrl) return;
 
             console.log('VRMA animation loaded, applying axis corrections...');
             
-            const loader = new THREE.GLTFLoader();
+            const loader = new GLTFLoader();
             loader.load(
                 animationUrl,
                 function(gltf) {
@@ -430,9 +304,7 @@
                     vrmaAnimation.tracks.forEach(function(track) {
                         if (track.name.includes('.quaternion')) {
                             for (let i = 0; i < track.values.length; i += 4) {
-                                // Y軸回転を反転
                                 track.values[i + 1] *= -1;
-                                // Z軸回転を反転
                                 track.values[i + 2] *= -1;
                             }
                         }
@@ -465,12 +337,105 @@
 
         // ランダムアイドルアニメーション再生
         function playRandomIdleAnimation() {
-            const animations = Object.keys(ANIMATIONS);
+            const animations = Object.keys(VRMA_ANIMATIONS);
             const randomAnimation = animations[Math.floor(Math.random() * animations.length)];
-            const animationUrl = ANIMATIONS[randomAnimation];
             
             console.log(`アニメーション再生: ${randomAnimation}`);
-            loadVRMAAnimation(animationUrl);
+            loadVRMAAnimation(randomAnimation);
+        }
+
+        // 初期化
+        function init() {
+            console.log('VRMチャットアプリを初期化中...');
+            
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000000, 0);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.enableZoom = true;
+            controls.enablePan = false;
+            controls.maxPolarAngle = Math.PI / 2;
+            controls.minDistance = 1;
+            controls.maxDistance = 5;
+
+            camera.position.set(0, 1.5, 2);
+            controls.target.set(0, 1, 0);
+
+            // ライト設定
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(1, 2, 1);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+
+            const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+            fillLight.position.set(-1, 1, -1);
+            scene.add(fillLight);
+
+            setupEventListeners();
+            loadVRM('default');
+            animate();
+
+            console.log('初期化完了');
+        }
+
+        // VRM読み込み
+        function loadVRM(characterKey) {
+            const vrmUrl = VRM_CONFIGS[characterKey];
+            if (!vrmUrl) return;
+
+            console.log(`VRMを読み込み中: ${characterKey}`);
+
+            if (currentVrm) {
+                scene.remove(currentVrm.scene);
+                currentVrm = null;
+            }
+
+            const loader = new GLTFLoader();
+            loader.register((parser) => new VRMLoaderPlugin(parser));
+
+            loader.load(
+                vrmUrl,
+                function(gltf) {
+                    const vrm = gltf.userData.vrm;
+                    console.log('VRM読み込み完了');
+                    
+                    VRMUtils.removeUnnecessaryJoints(gltf.scene);
+                    vrm.scene.rotation.y = Math.PI;
+                    
+                    adjustCharacterPose(vrm);
+
+                    currentVrm = vrm;
+                    scene.add(vrm.scene);
+
+                    hideLoading();
+
+                    idleTimer = 0;
+                    nextIdleTime = Math.random() * 3 + 2;
+
+                    updateCharacterSelector(characterKey);
+                },
+                function(progress) {
+                    const percentage = (progress.loaded / progress.total) * 100;
+                    console.log('Loading... ' + percentage.toFixed(1) + '%');
+                },
+                function(error) {
+                    console.error('VRM読み込みエラー:', error);
+                    hideLoading();
+                }
+            );
         }
 
         // メッセージ送信（ChatGPT API連携版）
@@ -564,11 +529,6 @@
             messagesContainer.appendChild(messageDiv);
             messagesContainer.style.display = 'block';
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        // ステータス更新
-        function updateStatus(text) {
-            document.getElementById('status').textContent = text;
         }
 
         // イベントリスナー設定
