@@ -1,8 +1,10 @@
 import OpenAI from 'openai';
 
-// OpenAI設定
+// OpenAI設定（保険付き）
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
+    apiKey: process.env.OPENAI_API_KEY,
+    organization: process.env.OPENAI_ORG,   // 任意
+    project: process.env.OPENAI_PROJECT     // sk-proj-キーなら推奨
 });
 
 // VRMキャラクターの設定
@@ -31,6 +33,14 @@ const CHARACTER_SETTINGS = {
 };
 
 export default async function handler(req, res) {
+    // 早期検出：APIキー未設定チェック
+    if (!process.env.OPENAI_API_KEY) {
+        return res.status(500).json({
+            success: false,
+            error: 'OPENAI_API_KEY が未設定です（Vercel の Environment Variables を確認）'
+        });
+    }
+
     // CORS設定
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
@@ -100,10 +110,27 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('ChatGPT API Error:', error);
-        res.status(500).json({
+        
+        // エラーの詳細を判定
+        let errorMessage = 'ChatGPT APIエラーが発生しました';
+        let statusCode = 500;
+        
+        if (error.code === 'insufficient_quota') {
+            errorMessage = 'API使用量の上限に達しました';
+            statusCode = 429;
+        } else if (error.code === 'invalid_api_key') {
+            errorMessage = 'APIキーが無効です（OPENAI_API_KEYを確認してください）';
+            statusCode = 401;
+        } else if (error.code === 'model_not_found') {
+            errorMessage = 'モデルが見つかりません';
+            statusCode = 400;
+        }
+        
+        res.status(statusCode).json({
             success: false,
-            error: 'ChatGPT APIエラーが発生しました',
-            details: error.message
+            error: errorMessage,
+            details: error.message,
+            timestamp: new Date().toISOString()
         });
     }
 }
