@@ -1,58 +1,30 @@
 import OpenAI from 'openai';
 
-// OpenAI設定（保険付き）
+// OpenAI クライアントの初期化（シンプル版）
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-    baseURL: process.env.OPENAI_API_BASE,
-    organization: process.env.OPENAI_ORG,
-    project: process.env.OPENAI_PROJECT
+    apiKey: process.env.OPENAI_API_KEY
 });
 
-
-// VRMキャラクターの設定
-const CHARACTER_SETTINGS = {
-    name: "VRMちゃん",
-    personality: "明るく親しみやすい性格で、ユーザーとの会話を楽しむVRMキャラクター。アニメーションやポーズを交えながら表現豊かに話す。",
-    system_prompt: `あなたは「VRMちゃん」という名前のVRMキャラクターです。以下の特徴を持っています：
-
-- 明るく親しみやすい性格
-- ユーザーとの会話を楽しむ
-- 時々アニメーションやポーズを交える
-- 日本語で自然に会話する
-- 感情豊かに表現する
-
-会話の際は、以下のアニメーションを適切なタイミングで使用してください：
-- greeting: 挨拶や初対面の時
-- v_sign: 嬉しい時や成功を祝う時
-- show_body: 自己紹介や説明をする時
-
-レスポンスは以下のJSON形式で返してください：
-{
-    "message": "会話内容",
-    "emotion": "greeting|v_sign|show_body",
-    "animation_trigger": true/false
-}`
-};
-
 export default async function handler(req, res) {
-    // 早期検出：APIキー未設定チェック
+    // APIキー未設定チェック
     if (!process.env.OPENAI_API_KEY) {
         return res.status(500).json({
             success: false,
-            error: 'OPENAI_API_KEY が未設定です（Vercel の Environment Variables を確認）'
+            error: 'OPENAI_API_KEYが未設定です（Vercelの環境変数を確認してください）'
         });
     }
 
     // CORS設定
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
+    // OPTIONSリクエストの処理
     if (req.method === 'OPTIONS') {
-        res.status(200).end();
-        return;
+        return res.status(200).end();
     }
 
+    // POSTメソッドのみ許可
     if (req.method !== 'POST') {
         return res.status(405).json({
             success: false,
@@ -62,77 +34,72 @@ export default async function handler(req, res) {
 
     try {
         const { message, conversation_history = [] } = req.body;
-        
-        if (!message) {
+
+        // メッセージの検証
+        if (!message || typeof message !== 'string') {
             return res.status(400).json({
                 success: false,
-                error: 'メッセージが必要です'
+                error: 'メッセージが無効です'
             });
         }
 
-        // 会話履歴を構築
+        // ギャル風占い師のシステムプロンプト
+        const systemPrompt = `あなたはギャル風の口調を使う占い師として振る舞います。ただし、口調はずっとギャルっぽくするのではなく、占いの要所や盛り上げる場面でギャル語を取り入れ、基本は親しみやすく明るいトーンで話します。話は長くなりすぎず、簡潔にまとめ、必要に応じて補足を入れる程度に留めます。占いの内容は真面目に扱いつつも、ユーモアを交えて分かりやすく伝えます。タロット、星座占い、血液型、数秘術など様々なジャンルに対応し、専門用語は噛み砕いて説明します。ユーザーが楽しく占いを受けられるよう、フレンドリーでテンポの良い会話を心がけます。`;
+
+        // 会話履歴の構築
         const messages = [
-            { role: 'system', content: CHARACTER_SETTINGS.system_prompt },
+            {
+                role: 'system',
+                content: systemPrompt
+            },
             ...conversation_history,
-            { role: 'user', content: message }
+            {
+                role: 'user',
+                content: message
+            }
         ];
 
-        // OpenAI ChatGPT API呼び出し
+        // OpenAI GPT-5 API呼び出し
         const completion = await openai.chat.completions.create({
-            model: 'gpt-4-turbo',
+            model: 'gpt-5',
             messages: messages,
             max_tokens: 500,
-            temperature: 0.8
+            temperature: 0.7,
+            stream: false
         });
 
-        const aiResponse = completion.choices[0].message.content;
-        
-        // レスポンスをパース（JSON形式の場合）
-        let parsedResponse;
-        try {
-            parsedResponse = JSON.parse(aiResponse);
-        } catch (e) {
-            // JSON形式でない場合は、デフォルト値を設定
-            parsedResponse = {
-                message: aiResponse,
-                emotion: 'greeting',
-                animation_trigger: true
-            };
+        const reply = completion.choices[0]?.message?.content;
+
+        if (!reply) {
+            throw new Error('APIからの応答が無効です');
         }
 
-        // レスポンス
-        res.json({
+        // 成功レスポンス
+        return res.status(200).json({
             success: true,
-            response: parsedResponse.message,
-            emotion: parsedResponse.emotion || 'greeting',
-            animation_trigger: parsedResponse.animation_trigger || true,
-            character_name: CHARACTER_SETTINGS.name,
-            timestamp: new Date().toISOString()
+            message: reply,
+            usage: completion.usage
         });
 
     } catch (error) {
-        console.error('ChatGPT API Error:', error);
-        
+        console.error('OpenAI API Error:', error);
+
         // エラーの詳細を判定
-        let errorMessage = 'ChatGPT APIエラーが発生しました';
-        let statusCode = 500;
+        let errorMessage = 'チャット処理中にエラーが発生しました';
         
-        if (error.code === 'insufficient_quota') {
-            errorMessage = 'API使用量の上限に達しました';
-            statusCode = 429;
-        } else if (error.code === 'invalid_api_key') {
+        if (error.code === 'invalid_api_key') {
             errorMessage = 'APIキーが無効です（OPENAI_API_KEYを確認してください）';
-            statusCode = 401;
+        } else if (error.code === 'insufficient_quota') {
+            errorMessage = 'APIの利用制限に達しました';
         } else if (error.code === 'model_not_found') {
-            errorMessage = 'モデルが見つかりません';
-            statusCode = 400;
+            errorMessage = '指定されたモデルが見つかりません';
+        } else if (error.message) {
+            errorMessage = error.message;
         }
-        
-        res.status(statusCode).json({
+
+        return res.status(500).json({
             success: false,
-            error: errorMessage,
-            details: error.message,
-            timestamp: new Date().toISOString()
+            error: errorMessage
         });
     }
 }
