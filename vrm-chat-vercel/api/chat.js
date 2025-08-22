@@ -3,9 +3,11 @@ import OpenAI from 'openai';
 // OpenAI設定（保険付き）
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
-    organization: process.env.OPENAI_ORG,   // 任意
-    project: process.env.OPENAI_PROJECT     // sk-proj-キーなら推奨
+    baseURL: process.env.OPENAI_API_BASE,
+    organization: process.env.OPENAI_ORG,
+    project: process.env.OPENAI_PROJECT
 });
+
 
 // VRMキャラクターの設定
 const CHARACTER_SETTINGS = {
